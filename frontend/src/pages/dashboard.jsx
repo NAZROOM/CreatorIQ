@@ -1,3 +1,5 @@
+import "./Dashboard.css";
+
 import {
   LineChart,
   Line,
@@ -12,31 +14,169 @@ import {
   Legend,
 } from "recharts";
 
-/* =========================
-   SAMPLE ANALYTICS DATA
-========================= */
-
-const performanceData = [
-  { month: "Jan", views: 18000, engagement: 3200 },
-  { month: "Feb", views: 24000, engagement: 4100 },
-  { month: "Mar", views: 21000, engagement: 3800 },
-  { month: "Apr", views: 32000, engagement: 5200 },
-  { month: "May", views: 28000, engagement: 4700 },
-  { month: "Jun", views: 36000, engagement: 5800 },
-];
-
-const audienceData = [
-  { name: "18-24", value: 35 },
-  { name: "25-34", value: 40 },
-  { name: "35-44", value: 15 },
-  { name: "45+", value: 10 },
-];
-
-/* =========================
-   DASHBOARD
-========================= */
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
 
 function Dashboard() {
+  // =========================
+  // NAVIGATION
+  // =========================
+
+  const navigate = useNavigate();
+
+  // =========================
+  // API DATA
+  // =========================
+
+  const [analytics, setAnalytics] = useState([]);
+  const [audience, setAudience] = useState([]);
+  const [growth, setGrowth] = useState([]);
+  const [earnings, setEarnings] = useState([]);
+
+  // =========================
+  // LOAD DATA
+  // =========================
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const analyticsResponse =
+          await api.get("/analytics/1");
+
+        const audienceResponse =
+          await api.get("/audience/1");
+
+        const growthResponse =
+          await api.get("/analytics/1/growth");
+
+        const earningsResponse =
+          await api.get("/earnings/1");
+
+        setAnalytics(
+          Array.isArray(analyticsResponse.data)
+            ? analyticsResponse.data
+            : []
+        );
+
+        setAudience(
+          Array.isArray(audienceResponse.data)
+            ? audienceResponse.data
+            : []
+        );
+
+        setGrowth(
+          Array.isArray(growthResponse.data?.growth)
+            ? growthResponse.data.growth
+            : []
+        );
+
+        setEarnings(
+          Array.isArray(earningsResponse.data)
+            ? earningsResponse.data
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "Error loading dashboard data:",
+          error
+        );
+
+        setAnalytics([]);
+        setAudience([]);
+        setGrowth([]);
+        setEarnings([]);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // =========================
+  // SIGN OUT
+  // =========================
+
+  const handleSignOut = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
+
+  // =========================
+  // PERFORMANCE DATA
+  // =========================
+
+  const performanceData = growth.map((item) => ({
+    month: item.date,
+    views: Number(item.views || 0),
+    engagement: Number(item.engagement || 0),
+  }));
+
+  // =========================
+  // AUDIENCE DATA
+  // =========================
+
+  const audienceData = audience.map((item) => ({
+    name: item.age_group,
+    value: Number(item.audience_count || 0),
+  }));
+
+  // =========================
+  // KPI DATA
+  // =========================
+
+  const totalViews = analytics.reduce(
+    (sum, item) =>
+      sum + Number(item.views || 0),
+    0
+  );
+
+  const totalFollowers =
+    analytics.length > 0
+      ? Number(
+          analytics[analytics.length - 1]
+            ?.followers || 0
+        )
+      : 0;
+
+  const totalEngagement = analytics.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.likes || 0) +
+      Number(item.comments || 0) +
+      Number(item.shares || 0) +
+      Number(item.saves || 0),
+    0
+  );
+
+  // =========================
+  // TOTAL REVENUE
+  // =========================
+
+  const totalRevenue = earnings.reduce(
+    (sum, item) =>
+      sum +
+      Number(
+        item.estimated_revenue || 0
+      ),
+    0
+  );
+
+  // =========================
+  // PIE COLORS
+  // =========================
+
+  const pieColors = [
+    "#6366f1",
+    "#22c55e",
+    "#f59e0b",
+    "#ef4444",
+    "#06b6d4",
+  ];
+
+  // =========================
+  // RENDER
+  // =========================
+
   return (
     <div className="dashboard">
 
@@ -46,60 +186,154 @@ function Dashboard() {
 
       <aside className="sidebar">
 
-        <div className="sidebar-logo">
+        {/* LOGO */}
+
+        <div
+          className="sidebar-logo"
+          onClick={() =>
+            navigate("/dashboard")
+          }
+          style={{ cursor: "pointer" }}
+        >
           ✦ CreatorIQ
         </div>
 
+        {/* =========================
+            NAVIGATION
+        ========================= */}
+
         <nav className="sidebar-nav">
 
-          <div className="nav-item active">
+          {/* DASHBOARD */}
+
+          <div
+            className="nav-item active"
+            onClick={() =>
+              navigate("/dashboard")
+            }
+          >
             <span>▦</span>
             Dashboard
           </div>
 
-          <div className="nav-item">
+          {/* CONTENT */}
+
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/content")
+            }
+          >
             <span>▤</span>
             Content
           </div>
 
-          <div className="nav-item">
-            <span>⌁</span>
-            Analytics
-          </div>
+          {/* AUDIENCE */}
 
-          <div className="nav-item">
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/audience")
+            }
+          >
             <span>◉</span>
             Audience
           </div>
 
-          <div className="nav-item">
-            <span>₹</span>
+          {/* GROWTH & TRENDS */}
+
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/growth-trends")
+            }
+          >
+            <span>↗</span>
+            Growth & Trends
+          </div>
+
+          {/* EARNINGS */}
+
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/earnings")
+            }
+          >
+            <span>$</span>
             Earnings
           </div>
 
-          <div className="nav-item">
+          {/* SOCIAL MEDIA */}
+
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/social-media")
+            }
+          >
+            <span>🔗</span>
+            Social Media
+          </div>
+
+          {/* SETTINGS */}
+
+          <div
+            className="nav-item"
+            onClick={() =>
+              navigate("/settings")
+            }
+          >
             <span>⚙</span>
             Settings
           </div>
 
         </nav>
 
-        {/* Profile */}
-        <div className="profile-section">
+        {/* =========================
+            SIDEBAR BOTTOM
+        ========================= */}
 
-          <div className="profile-avatar">
-            M
+        <div className="sidebar-bottom">
+
+          {/* PROFILE */}
+
+          <div className="profile-section">
+
+            <div className="profile-avatar">
+              M
+            </div>
+
+            <div className="profile-info">
+
+              <strong>
+                Creator
+              </strong>
+
+              <span>
+                Creator account
+              </span>
+
+            </div>
+
           </div>
 
-          <div>
-            <strong>Creator</strong>
-            <span>Creator account</span>
+          {/* SIGN OUT */}
+
+          <div
+            className="nav-item signout-item"
+            onClick={handleSignOut}
+          >
+            <span>
+              ⇥
+            </span>
+
+            Sign Out
           </div>
 
         </div>
 
       </aside>
-
 
       {/* =========================
           MAIN CONTENT
@@ -107,23 +341,26 @@ function Dashboard() {
 
       <main className="dashboard-main">
 
-        {/* Header */}
+        {/* =========================
+            HEADER
+        ========================= */}
+
         <header className="dashboard-header">
 
           <div>
-            <h1>Creator Dashboard</h1>
+
+            <h1>
+              Creator Dashboard
+            </h1>
 
             <p>
-              Welcome back! Here's how your content is performing.
+              Welcome back! Here's how your
+              content is performing.
             </p>
+
           </div>
 
-          <button className="theme-button">
-            ☾ Dark mode
-          </button>
-
         </header>
-
 
         {/* =========================
             KPI CARDS
@@ -131,79 +368,127 @@ function Dashboard() {
 
         <section className="kpi-grid">
 
-          {/* Total Views */}
+          {/* TOTAL VIEWS */}
+
           <div className="kpi-card">
 
             <div className="kpi-header">
-              <span>Total Views</span>
-              <div className="kpi-icon">◉</div>
+
+              <span>
+                Total Views
+              </span>
+
+              <div className="kpi-icon">
+                ◉
+              </div>
+
             </div>
 
-            <h2>128.4K</h2>
+            <h2>
+              {totalViews.toLocaleString()}
+            </h2>
 
             <p className="kpi-growth">
               ↑ 12.5%
-              <small>vs last month</small>
+
+              <small>
+                vs last month
+              </small>
             </p>
 
           </div>
 
+          {/* FOLLOWERS */}
 
-          {/* Followers */}
           <div className="kpi-card">
 
             <div className="kpi-header">
-              <span>Followers</span>
-              <div className="kpi-icon">◎</div>
+
+              <span>
+                Followers
+              </span>
+
+              <div className="kpi-icon">
+                ◎
+              </div>
+
             </div>
 
-            <h2>24.8K</h2>
+            <h2>
+              {totalFollowers.toLocaleString()}
+            </h2>
 
             <p className="kpi-growth">
               ↑ 8.2%
-              <small>vs last month</small>
+
+              <small>
+                vs last month
+              </small>
             </p>
 
           </div>
 
+          {/* ENGAGEMENT */}
 
-          {/* Engagement */}
           <div className="kpi-card">
 
             <div className="kpi-header">
-              <span>Engagement</span>
-              <div className="kpi-icon">♡</div>
+
+              <span>
+                Engagement
+              </span>
+
+              <div className="kpi-icon">
+                ♡
+              </div>
+
             </div>
 
-            <h2>18.6K</h2>
+            <h2>
+              {totalEngagement.toLocaleString()}
+            </h2>
 
             <p className="kpi-growth">
               ↑ 15.4%
-              <small>vs last month</small>
+
+              <small>
+                vs last month
+              </small>
             </p>
 
           </div>
 
+          {/* EARNINGS */}
 
-          {/* Earnings */}
           <div className="kpi-card">
 
             <div className="kpi-header">
-              <span>Earnings</span>
-              <div className="kpi-icon">₹</div>
+
+              <span>
+                Earnings
+              </span>
+
+              <div className="kpi-icon">
+                $
+              </div>
+
             </div>
 
-            <h2>₹42,850</h2>
+            <h2>
+              ${totalRevenue.toFixed(2)}
+            </h2>
 
             <p className="kpi-growth">
               ↑ 10.8%
-              <small>vs last month</small>
+
+              <small>
+                vs last month
+              </small>
             </p>
 
           </div>
 
         </section>
-
 
         {/* =========================
             CHARTS
@@ -211,10 +496,13 @@ function Dashboard() {
 
         <section className="charts-grid">
 
-          {/* Performance Chart */}
+          {/* PERFORMANCE CHART */}
+
           <div className="chart-card">
 
-            <h3>Performance Overview</h3>
+            <h3>
+              Performance Overview
+            </h3>
 
             <p>
               Views and engagement over time
@@ -222,13 +510,22 @@ function Dashboard() {
 
             <div className="chart-container">
 
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer
+                width="100%"
+                height={260}
+              >
 
-                <LineChart data={performanceData}>
+                <LineChart
+                  data={performanceData}
+                >
 
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
 
-                  <XAxis dataKey="month" />
+                  <XAxis
+                    dataKey="month"
+                  />
 
                   <YAxis />
 
@@ -260,11 +557,15 @@ function Dashboard() {
 
           </div>
 
+          {/* =========================
+              AUDIENCE CHART
+          ========================= */}
 
-          {/* Audience Chart */}
           <div className="chart-card">
 
-            <h3>Audience Overview</h3>
+            <h3>
+              Audience Overview
+            </h3>
 
             <p>
               Audience age distribution
@@ -272,7 +573,10 @@ function Dashboard() {
 
             <div className="chart-container">
 
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer
+                width="100%"
+                height={260}
+              >
 
                 <PieChart>
 
@@ -288,9 +592,21 @@ function Dashboard() {
                     label
                   >
 
-                    {audienceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} />
-                    ))}
+                    {audienceData.map(
+                      (entry, index) => (
+
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            pieColors[
+                              index %
+                              pieColors.length
+                            ]
+                          }
+                        />
+
+                      )
+                    )}
 
                   </Pie>
 
@@ -308,46 +624,89 @@ function Dashboard() {
 
         </section>
 
-
         {/* =========================
             BOTTOM SECTION
         ========================= */}
 
         <section className="bottom-grid">
 
-          {/* Top Performing Content */}
+          {/* TOP PERFORMING CONTENT */}
+
           <div className="content-card">
 
-            <h3>Top Performing Content</h3>
+            <h3>
+              Top Performing Content
+            </h3>
 
             <div className="content-item">
-              <span>My Morning Routine</span>
-              <strong>42.8K views</strong>
+
+              <span>
+                My Morning Routine
+              </span>
+
+              <strong>
+                42.8K views
+              </strong>
+
             </div>
 
             <div className="content-item">
-              <span>Travel Vlog</span>
-              <strong>31.4K views</strong>
+
+              <span>
+                Travel Vlog
+              </span>
+
+              <strong>
+                31.4K views
+              </strong>
+
             </div>
 
             <div className="content-item">
-              <span>Creative Ideas</span>
-              <strong>27.9K views</strong>
+
+              <span>
+                Creative Ideas
+              </span>
+
+              <strong>
+                27.9K views
+              </strong>
+
             </div>
 
           </div>
 
+          {/* QUICK ACTIONS */}
 
-          {/* Quick Actions */}
           <div className="content-card">
 
-            <h3>Quick Actions</h3>
+            <h3>
+              Quick Actions
+            </h3>
 
-            <button>Create Content</button>
+            <button
+              onClick={() =>
+                navigate("/content")
+              }
+            >
+              Create Content
+            </button>
 
-            <button>View Analytics</button>
+            <button
+              onClick={() =>
+                navigate("/growth-trends")
+              }
+            >
+              View Growth & Trends
+            </button>
 
-            <button>Edit Profile</button>
+            <button
+              onClick={() =>
+                navigate("/settings")
+              }
+            >
+              Edit Profile
+            </button>
 
           </div>
 
