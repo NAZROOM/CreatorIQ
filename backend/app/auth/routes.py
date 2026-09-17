@@ -22,8 +22,10 @@ router = APIRouter(
 # =========================
 
 class RegisterRequest(BaseModel):
+    name: str
     email: str
     password: str
+    role: str
 
 
 class LoginRequest(BaseModel):
@@ -54,8 +56,10 @@ def register(
         )
 
     new_user = User(
+        name=data.name,
         email=data.email,
-        password_hash=hash_password(data.password)
+        password_hash=hash_password(data.password),
+        role=data.role
     )
 
     db.add(new_user)
@@ -65,7 +69,9 @@ def register(
     return {
         "message": "Registration successful",
         "user_id": new_user.id,
-        "email": new_user.email
+        "name": new_user.name,
+        "email": new_user.email,
+        "role": new_user.role
     }
 
 
@@ -114,6 +120,7 @@ def login(
         "token_type": "bearer",
         "user": {
             "id": user.id,
+            "name": user.name,
             "email": user.email,
             "role": user.role
         }

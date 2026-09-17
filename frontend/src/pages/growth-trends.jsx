@@ -20,12 +20,37 @@ function GrowthTrends() {
   const [videos, setVideos] = useState([]);
 
   // =====================================================
+  // X DATA - ADDED
+  // =====================================================
+
+  const [activePlatform, setActivePlatform] = useState(
+    localStorage.getItem("activeSocialPlatform") || "youtube"
+  );
+
+  const [xAccount, setXAccount] = useState(null);
+  const [xData, setXData] = useState(null);
+
+  // =====================================================
   // LOAD SAME SELECTED CREATOR
   // =====================================================
 
   useEffect(() => {
     const loadCreatorData = () => {
       try {
+        // =================================================
+        // ACTIVE PLATFORM - ADDED
+        // =================================================
+
+        const currentPlatform =
+          localStorage.getItem("activeSocialPlatform") ||
+          "youtube";
+
+        setActivePlatform(currentPlatform);
+
+        // =================================================
+        // YOUTUBE
+        // =================================================
+
         const savedChannel = localStorage.getItem(
           "selectedYoutubeChannel"
         );
@@ -55,6 +80,30 @@ function GrowthTrends() {
             ? JSON.parse(savedVideos)
             : []
         );
+
+        // =================================================
+        // X - ADDED
+        // =================================================
+
+        const savedXAccount = localStorage.getItem(
+          "selectedXAccount"
+        );
+
+        const savedXData = localStorage.getItem(
+          "selectedXData"
+        );
+
+        setXAccount(
+          savedXAccount
+            ? JSON.parse(savedXAccount)
+            : null
+        );
+
+        setXData(
+          savedXData
+            ? JSON.parse(savedXData)
+            : null
+        );
       } catch (error) {
         console.error(
           "Error loading creator data:",
@@ -64,6 +113,9 @@ function GrowthTrends() {
         setChannel(null);
         setAnalytics(null);
         setVideos([]);
+
+        setXAccount(null);
+        setXData(null);
       }
     };
 
@@ -71,6 +123,24 @@ function GrowthTrends() {
 
     window.addEventListener(
       "selectedYoutubeChannelChanged",
+      loadCreatorData
+    );
+
+    // =====================================================
+    // X EVENT - ADDED
+    // =====================================================
+
+    window.addEventListener(
+      "selectedXAccountChanged",
+      loadCreatorData
+    );
+
+    // =====================================================
+    // PLATFORM EVENT - ADDED
+    // =====================================================
+
+    window.addEventListener(
+      "activeSocialPlatformChanged",
       loadCreatorData
     );
 
@@ -82,6 +152,16 @@ function GrowthTrends() {
     return () => {
       window.removeEventListener(
         "selectedYoutubeChannelChanged",
+        loadCreatorData
+      );
+
+      window.removeEventListener(
+        "selectedXAccountChanged",
+        loadCreatorData
+      );
+
+      window.removeEventListener(
+        "activeSocialPlatformChanged",
         loadCreatorData
       );
 
@@ -128,6 +208,71 @@ function GrowthTrends() {
     channel?.thumbnail_url ||
     channel?.thumbnailUrl ||
     "";
+
+  // =====================================================
+  // X ACCOUNT DATA - ADDED
+  // =====================================================
+
+  const xUsername =
+    xAccount?.username ||
+    xAccount?.screen_name ||
+    xData?.account?.username ||
+    xData?.username ||
+    "No X account selected";
+
+  const xDisplayName =
+    xAccount?.name ||
+    xAccount?.display_name ||
+    xData?.account?.name ||
+    xData?.name ||
+    xUsername;
+
+  const xFollowers = Number(
+    xAccount?.followers_count ??
+      xAccount?.followers ??
+      xData?.account?.followers_count ??
+      xData?.account?.followers ??
+      xData?.followers_count ??
+      xData?.followers ??
+      0
+  );
+
+  const xFollowing = Number(
+    xAccount?.following_count ??
+      xAccount?.following ??
+      xData?.account?.following_count ??
+      xData?.account?.following ??
+      xData?.following_count ??
+      xData?.following ??
+      0
+  );
+
+  const xProfileImage = (
+    xAccount?.profile_image_url ||
+    xAccount?.profile_image ||
+    xData?.account?.profile_image_url ||
+    xData?.account?.profile_image ||
+    ""
+  )
+    .replace("_normal.", ".")
+    .replace("_bigger.", ".")
+    .replace("_mini.", ".");
+
+  // =====================================================
+  // X POSTS - ADDED
+  // =====================================================
+
+  const xPosts = useMemo(() => {
+    const posts =
+      xData?.recent_posts ||
+      xData?.recentPosts ||
+      xData?.posts ||
+      [];
+
+    return Array.isArray(posts)
+      ? posts
+      : [];
+  }, [xData]);
 
   // =====================================================
   // SAFE NUMBER
@@ -234,10 +379,6 @@ function GrowthTrends() {
       };
     }
 
-    // ---------------------------------------------------
-    // TOTAL VIEWS
-    // ---------------------------------------------------
-
     const totalVideoViews = sortedVideos.reduce(
       (sum, video) =>
         sum +
@@ -249,10 +390,6 @@ function GrowthTrends() {
       0
     );
 
-    // ---------------------------------------------------
-    // TOTAL LIKES
-    // ---------------------------------------------------
-
     const totalLikes = sortedVideos.reduce(
       (sum, video) =>
         sum +
@@ -263,10 +400,6 @@ function GrowthTrends() {
         ),
       0
     );
-
-    // ---------------------------------------------------
-    // TOTAL COMMENTS
-    // ---------------------------------------------------
 
     const totalComments = sortedVideos.reduce(
       (sum, video) =>
@@ -280,10 +413,6 @@ function GrowthTrends() {
     );
 
     const count = sortedVideos.length;
-
-    // ---------------------------------------------------
-    // AVERAGES
-    // ---------------------------------------------------
 
     const averageViews =
       count > 0
@@ -300,10 +429,6 @@ function GrowthTrends() {
         ? totalComments / count
         : 0;
 
-    // ---------------------------------------------------
-    // ENGAGEMENT RATE
-    // ---------------------------------------------------
-
     const engagementRate =
       totalVideoViews > 0
         ? ((totalLikes + totalComments) /
@@ -311,25 +436,11 @@ function GrowthTrends() {
           100
         : 0;
 
-    // ---------------------------------------------------
-    // RECENT VIDEOS
-    // Latest 3 videos
-    // ---------------------------------------------------
-
     const recentVideos =
       sortedVideos.slice(0, 3);
 
-    // ---------------------------------------------------
-    // OLDER VIDEOS
-    // Previous 3 videos
-    // ---------------------------------------------------
-
     const olderVideos =
       sortedVideos.slice(3, 6);
-
-    // ---------------------------------------------------
-    // RECENT AVERAGE
-    // ---------------------------------------------------
 
     let recentAverageViews = 0;
 
@@ -350,10 +461,6 @@ function GrowthTrends() {
         recentTotal / recentVideos.length;
     }
 
-    // ---------------------------------------------------
-    // OLDER AVERAGE
-    // ---------------------------------------------------
-
     let olderAverageViews = 0;
 
     if (olderVideos.length > 0) {
@@ -372,10 +479,6 @@ function GrowthTrends() {
       olderAverageViews =
         olderTotal / olderVideos.length;
     }
-
-    // ---------------------------------------------------
-    // CONTENT VIEW GROWTH
-    // ---------------------------------------------------
 
     let contentViewGrowth = 0;
 
@@ -407,10 +510,195 @@ function GrowthTrends() {
   }, [sortedVideos]);
 
   // =====================================================
+  // X METRICS - ADDED
+  // =====================================================
+
+  const xMetrics = useMemo(() => {
+    if (xPosts.length === 0) {
+      return {
+        totalImpressions: 0,
+        totalLikes: 0,
+        totalReplies: 0,
+        totalReposts: 0,
+        averageImpressions: 0,
+        averageLikes: 0,
+        averageReplies: 0,
+        engagementRate: 0,
+        recentAverageImpressions: 0,
+        olderAverageImpressions: 0,
+        contentViewGrowth: 0,
+      };
+    }
+
+    const getPostMetrics = (post) => {
+      const metrics =
+        post?.public_metrics ||
+        post?.publicMetrics ||
+        post?.metrics ||
+        {};
+
+      return {
+        impressions: getNumber(
+          metrics?.impression_count,
+          metrics?.impressions,
+          post?.impression_count,
+          post?.impressions
+        ),
+
+        likes: getNumber(
+          metrics?.like_count,
+          metrics?.likes,
+          post?.like_count,
+          post?.likes
+        ),
+
+        replies: getNumber(
+          metrics?.reply_count,
+          metrics?.replies,
+          post?.reply_count,
+          post?.replies
+        ),
+
+        reposts: getNumber(
+          metrics?.retweet_count,
+          metrics?.retweets,
+          metrics?.repost_count,
+          metrics?.reposts,
+          post?.retweet_count,
+          post?.retweets,
+          post?.repost_count,
+          post?.reposts
+        ),
+      };
+    };
+
+    const totalImpressions =
+      xPosts.reduce(
+        (sum, post) =>
+          sum +
+          getPostMetrics(post).impressions,
+        0
+      );
+
+    const totalLikes =
+      xPosts.reduce(
+        (sum, post) =>
+          sum +
+          getPostMetrics(post).likes,
+        0
+      );
+
+    const totalReplies =
+      xPosts.reduce(
+        (sum, post) =>
+          sum +
+          getPostMetrics(post).replies,
+        0
+      );
+
+    const totalReposts =
+      xPosts.reduce(
+        (sum, post) =>
+          sum +
+          getPostMetrics(post).reposts,
+        0
+      );
+
+    const count = xPosts.length;
+
+    const averageImpressions =
+      totalImpressions / count;
+
+    const averageLikes =
+      totalLikes / count;
+
+    const averageReplies =
+      totalReplies / count;
+
+    const engagementRate =
+      totalImpressions > 0
+        ? ((totalLikes +
+            totalReplies +
+            totalReposts) /
+            totalImpressions) *
+          100
+        : 0;
+
+    const recentPosts =
+      xPosts.slice(0, 3);
+
+    const olderPosts =
+      xPosts.slice(3, 6);
+
+    let recentAverageImpressions = 0;
+
+    if (recentPosts.length > 0) {
+      const recentTotal =
+        recentPosts.reduce(
+          (sum, post) =>
+            sum +
+            getPostMetrics(post)
+              .impressions,
+          0
+        );
+
+      recentAverageImpressions =
+        recentTotal / recentPosts.length;
+    }
+
+    let olderAverageImpressions = 0;
+
+    if (olderPosts.length > 0) {
+      const olderTotal =
+        olderPosts.reduce(
+          (sum, post) =>
+            sum +
+            getPostMetrics(post)
+              .impressions,
+          0
+        );
+
+      olderAverageImpressions =
+        olderTotal / olderPosts.length;
+    }
+
+    let contentViewGrowth = 0;
+
+    if (
+      recentAverageImpressions > 0 &&
+      olderAverageImpressions > 0
+    ) {
+      contentViewGrowth =
+        ((recentAverageImpressions -
+          olderAverageImpressions) /
+          olderAverageImpressions) *
+          100;
+    }
+
+    return {
+      totalImpressions,
+      totalLikes,
+      totalReplies,
+      totalReposts,
+      averageImpressions,
+      averageLikes,
+      averageReplies,
+      engagementRate,
+      recentAverageImpressions,
+      olderAverageImpressions,
+      contentViewGrowth,
+    };
+  }, [xPosts]);
+
+  // =====================================================
   // ENGAGEMENT RATE
   // =====================================================
 
   const realEngagementRate = useMemo(() => {
+    if (activePlatform === "x") {
+      return xMetrics.engagementRate;
+    }
+
     const apiRate = getNumber(
       analytics?.engagement_rate,
       analytics?.engagementRate,
@@ -424,9 +712,11 @@ function GrowthTrends() {
 
     return videoMetrics.engagementRate;
   }, [
+    activePlatform,
     analytics,
     channel,
     videoMetrics.engagementRate,
+    xMetrics.engagementRate,
   ]);
 
   // =====================================================
@@ -434,10 +724,14 @@ function GrowthTrends() {
   // =====================================================
 
   const averageViews =
-    videoMetrics.averageViews;
+    activePlatform === "x"
+      ? xMetrics.averageImpressions
+      : videoMetrics.averageViews;
 
   const contentViewGrowth =
-    videoMetrics.contentViewGrowth;
+    activePlatform === "x"
+      ? xMetrics.contentViewGrowth
+      : videoMetrics.contentViewGrowth;
 
   // =====================================================
   // MONTHLY VIDEO VIEWS
@@ -504,6 +798,96 @@ function GrowthTrends() {
   }, [sortedVideos]);
 
   // =====================================================
+  // MONTHLY X IMPRESSIONS - ADDED
+  // =====================================================
+
+  const monthlyXData = useMemo(() => {
+    if (
+      !Array.isArray(xPosts) ||
+      xPosts.length === 0
+    ) {
+      return [];
+    }
+
+    const months = {};
+
+    xPosts.forEach((post) => {
+      const rawDate =
+        post?.created_at ||
+        post?.createdAt ||
+        post?.published_at ||
+        post?.publishedAt ||
+        post?.posted_at ||
+        post?.postedAt ||
+        post?.date ||
+        post?.timestamp;
+
+      if (!rawDate) {
+        return;
+      }
+
+      const date = new Date(rawDate);
+
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
+
+      const monthKey =
+        `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+
+      const monthName =
+        date.toLocaleString(
+          "en-US",
+          {
+            month: "short",
+          }
+        );
+
+      const metrics =
+        post?.public_metrics ||
+        post?.publicMetrics ||
+        post?.metrics ||
+        {};
+
+      const impressions =
+        getNumber(
+          metrics?.impression_count,
+          metrics?.impressions,
+          post?.impression_count,
+          post?.impressions
+        );
+
+      if (!months[monthKey]) {
+        months[monthKey] = {
+          month: monthName,
+          views: 0,
+          videos: 0,
+        };
+      }
+
+      months[monthKey].views +=
+        impressions;
+
+      months[monthKey].videos += 1;
+    });
+
+    return Object.keys(months)
+      .sort()
+      .map((key) => months[key]);
+  }, [xPosts]);
+
+  // =====================================================
+  // ACTIVE MONTHLY DATA
+  // =====================================================
+
+  const activeMonthlyData =
+    activePlatform === "x"
+      ? monthlyXData
+      : monthlyViewData;
+
+  // =====================================================
   // TREND STATUS
   // =====================================================
 
@@ -528,11 +912,17 @@ function GrowthTrends() {
   // =====================================================
 
   const contentStatus =
-    getTrendStatus(
-      contentViewGrowth,
-      "Recent content is getting more views",
-      "Recent content is getting fewer views"
-    );
+    activePlatform === "x"
+      ? xMetrics.contentViewGrowth > 0
+        ? "Recent posts are getting more impressions"
+        : xMetrics.contentViewGrowth < 0
+        ? "Recent posts are getting fewer impressions"
+        : "Stable performance"
+      : getTrendStatus(
+          contentViewGrowth,
+          "Recent content is getting more views",
+          "Recent content is getting fewer views"
+        );
 
   // =====================================================
   // ENGAGEMENT TREND
@@ -544,20 +934,20 @@ function GrowthTrends() {
       : "Engagement data is unavailable";
 
   // =====================================================
-  // VIEW TREND
+  // VIEW / IMPRESSION TREND
   // =====================================================
 
   const viewTrendStatus =
-    monthlyViewData.length >= 2
+    activeMonthlyData.length >= 2
       ? (() => {
           const latest =
-            monthlyViewData[
-              monthlyViewData.length - 1
+            activeMonthlyData[
+              activeMonthlyData.length - 1
             ]?.views || 0;
 
           const previous =
-            monthlyViewData[
-              monthlyViewData.length - 2
+            activeMonthlyData[
+              activeMonthlyData.length - 2
             ]?.views || 0;
 
           if (latest > previous) {
@@ -577,9 +967,31 @@ function GrowthTrends() {
   // =====================================================
 
   const creatorActivityStatus =
-    sortedVideos.length >= 3
+    activePlatform === "x"
+      ? xPosts.length >= 3
+        ? "Creator has recent X post activity"
+        : "Limited recent X post data"
+      : sortedVideos.length >= 3
       ? "Creator has recent video activity"
       : "Limited recent video data";
+
+  // =====================================================
+  // ACTIVE CREATOR NAME
+  // =====================================================
+
+  const activeCreatorName =
+    activePlatform === "x"
+      ? xDisplayName
+      : channelName;
+
+  // =====================================================
+  // ACTIVE CREATOR IMAGE
+  // =====================================================
+
+  const activeCreatorImage =
+    activePlatform === "x"
+      ? xProfileImage
+      : thumbnail;
 
   // =====================================================
   // RENDER
@@ -700,10 +1112,14 @@ function GrowthTrends() {
             <p>
               Track{" "}
               <strong>
-                {channelName}
+                {activeCreatorName}
               </strong>{" "}
               content performance, engagement,
-              and available YouTube trends.
+              and available{" "}
+              {activePlatform === "x"
+                ? "X"
+                : "YouTube"}{" "}
+              trends.
             </p>
 
           </div>
@@ -734,10 +1150,10 @@ function GrowthTrends() {
             }}
           >
 
-            {thumbnail ? (
+            {activeCreatorImage ? (
               <img
-                src={thumbnail}
-                alt={channelName}
+                src={activeCreatorImage}
+                alt={activeCreatorName}
                 referrerPolicy="no-referrer"
                 style={{
                   width: "72px",
@@ -768,9 +1184,11 @@ function GrowthTrends() {
                   fontWeight: "700",
                 }}
               >
-                {channelName !==
-                "No channel selected"
-                  ? channelName
+                {activePlatform === "x"
+                  ? "X"
+                  : activeCreatorName !==
+                    "No channel selected"
+                  ? activeCreatorName
                       .charAt(0)
                       .toUpperCase()
                   : "C"}
@@ -785,7 +1203,7 @@ function GrowthTrends() {
                   marginBottom: "6px",
                 }}
               >
-                {channelName}
+                {activeCreatorName}
               </h2>
 
               <p
@@ -794,8 +1212,9 @@ function GrowthTrends() {
                   margin: 0,
                 }}
               >
-                Growth insights use available
-                YouTube channel and video data.
+                {activePlatform === "x"
+                  ? `@${xUsername} • X account growth and post insights`
+                  : "Growth insights use available YouTube channel and video data."}
               </p>
 
             </div>
@@ -810,28 +1229,31 @@ function GrowthTrends() {
 
         <section className="growth-kpi-grid">
 
-          {/* CONTENT VIEW GROWTH */}
-
           <div className="growth-kpi-card">
 
             <span>
-              CONTENT VIEW GROWTH
+              {activePlatform === "x"
+                ? "IMPRESSION GROWTH"
+                : "CONTENT VIEW GROWTH"}
             </span>
 
             <h2>
-              {formatPercentage(
-                contentViewGrowth
-              )}
+              {activePlatform === "x" &&
+              xMetrics.olderAverageImpressions ===
+                0
+                ? "Unavailable"
+                : formatPercentage(
+                    contentViewGrowth
+                  )}
             </h2>
 
             <p>
-              Recent 3 videos vs previous 3
-              videos
+              {activePlatform === "x"
+                ? "Recent 3 posts vs previous 3 posts"
+                : "Recent 3 videos vs previous 3 videos"}
             </p>
 
           </div>
-
-          {/* ENGAGEMENT RATE */}
 
           <div className="growth-kpi-card">
 
@@ -846,38 +1268,45 @@ function GrowthTrends() {
             </h2>
 
             <p>
-              Based on actual views, likes and
-              comments
+              {activePlatform === "x"
+                ? "Based on impressions, likes, replies and reposts"
+                : "Based on actual views, likes and comments"}
             </p>
 
           </div>
 
-          {/* AVERAGE VIEWS */}
-
           <div className="growth-kpi-card">
 
             <span>
-              AVERAGE VIEWS
+              {activePlatform === "x"
+                ? "AVERAGE IMPRESSIONS"
+                : "AVERAGE VIEWS"}
             </span>
 
             <h2>
-              {formatNumber(
-                averageViews
-              )}
+              {activePlatform === "x" &&
+              xMetrics.totalImpressions ===
+                0
+                ? "Unavailable"
+                : formatNumber(
+                    averageViews
+                  )}
             </h2>
 
             <p>
-              Average views per analyzed video
+              {activePlatform === "x"
+                ? "Average impressions per analyzed post"
+                : "Average views per analyzed video"}
             </p>
 
           </div>
 
-          {/* VIEW TREND */}
-
           <div className="growth-kpi-card">
 
             <span>
-              VIEW TREND
+              {activePlatform === "x"
+                ? "IMPRESSION TREND"
+                : "VIEW TREND"}
             </span>
 
             <h2>
@@ -885,7 +1314,9 @@ function GrowthTrends() {
             </h2>
 
             <p>
-              Based on recent monthly content views
+              {activePlatform === "x"
+                ? "Based on available monthly X impressions"
+                : "Based on recent monthly content views"}
             </p>
 
           </div>
@@ -893,83 +1324,197 @@ function GrowthTrends() {
         </section>
 
         {/* =================================================
-            YOUTUBE STATISTICS
+            PLATFORM STATISTICS
         ================================================= */}
 
         <section className="growth-kpi-grid">
 
-          <div className="growth-kpi-card">
+          {activePlatform === "x" ? (
+            <>
+              <div className="growth-kpi-card">
 
-            <span>
-              SUBSCRIBERS
-            </span>
+                <span>
+                  FOLLOWERS
+                </span>
 
-            <h2>
-              {formatNumber(
-                subscribers
-              )}
-            </h2>
+                <h2>
+                  {formatNumber(
+                    xFollowers
+                  )}
+                </h2>
 
-            <p>
-              Current YouTube subscriber count
-            </p>
+                <p>
+                  Current X follower count
+                </p>
 
-          </div>
+              </div>
 
-          <div className="growth-kpi-card">
+              <div className="growth-kpi-card">
 
-            <span>
-              TOTAL VIEWS
-            </span>
+                <span>
+                  FOLLOWING
+                </span>
 
-            <h2>
-              {formatNumber(
-                totalViews
-              )}
-            </h2>
+                <h2>
+                  {formatNumber(
+                    xFollowing
+                  )}
+                </h2>
 
-            <p>
-              Current channel view count
-            </p>
+                <p>
+                  Current X following count
+                </p>
 
-          </div>
+              </div>
 
-          <div className="growth-kpi-card">
+              <div className="growth-kpi-card">
 
-            <span>
-              TOTAL VIDEOS
-            </span>
+                <span>
+                  TOTAL POSTS
+                </span>
 
-            <h2>
-              {formatNumber(
-                totalVideos
-              )}
-            </h2>
+                <h2>
+                  {(() => {
+                    const totalPosts =
+                      xData?.account?.posts ??
+                      xData?.account?.tweet_count ??
+                      xData?.account?.tweets_count ??
+                      xAccount?.posts ??
+                      xAccount?.tweet_count ??
+                      xAccount?.tweets_count ??
+                      xData?.posts ??
+                      xData?.tweet_count ??
+                      xData?.tweets_count ??
+                      xData?.total_posts ??
+                      xData?.totalPosts ??
+                      xData?.post_count ??
+                      xData?.postCount;
 
-            <p>
-              Published videos on the channel
-            </p>
+                    if (
+                      totalPosts === undefined ||
+                      totalPosts === null ||
+                      totalPosts === ""
+                    ) {
+                      return "Unavailable";
+                    }
 
-          </div>
+                    const numericTotalPosts =
+                      Number(totalPosts);
 
-          <div className="growth-kpi-card">
+                    if (
+                      !Number.isFinite(
+                        numericTotalPosts
+                      )
+                    ) {
+                      return "Unavailable";
+                    }
 
-            <span>
-              ANALYZED VIDEOS
-            </span>
+                    return Math.round(
+                      numericTotalPosts
+                    ).toLocaleString("en-IN");
+                  })()}
+                </h2>
 
-            <h2>
-              {formatNumber(
-                sortedVideos.length
-              )}
-            </h2>
+                <p>
+                  Total posts on this X account
+                </p>
 
-            <p>
-              Videos available for performance
-              analysis
-            </p>
+              </div>
 
-          </div>
+              <div className="growth-kpi-card">
+
+                <span>
+                  ANALYZED POSTS
+                </span>
+
+                <h2>
+                  {formatNumber(
+                    xPosts.length
+                  )}
+                </h2>
+
+                <p>
+                  Posts available for analysis
+                </p>
+
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="growth-kpi-card">
+
+                <span>
+                  SUBSCRIBERS
+                </span>
+
+                <h2>
+                  {formatNumber(
+                    subscribers
+                  )}
+                </h2>
+
+                <p>
+                  Current YouTube subscriber count
+                </p>
+
+              </div>
+
+              <div className="growth-kpi-card">
+
+                <span>
+                  TOTAL VIEWS
+                </span>
+
+                <h2>
+                  {formatNumber(
+                    totalViews
+                  )}
+                </h2>
+
+                <p>
+                  Current channel view count
+                </p>
+
+              </div>
+
+              <div className="growth-kpi-card">
+
+                <span>
+                  TOTAL VIDEOS
+                </span>
+
+                <h2>
+                  {formatNumber(
+                    totalVideos
+                  )}
+                </h2>
+
+                <p>
+                  Published videos on the channel
+                </p>
+
+              </div>
+
+              <div className="growth-kpi-card">
+
+                <span>
+                  ANALYZED VIDEOS
+                </span>
+
+                <h2>
+                  {formatNumber(
+                    sortedVideos.length
+                  )}
+                </h2>
+
+                <p>
+                  Videos available for performance
+                  analysis
+                </p>
+
+              </div>
+            </>
+          )}
 
         </section>
 
@@ -988,12 +1533,15 @@ function GrowthTrends() {
               </div>
 
               <h2>
-                Monthly Content Views
+                {activePlatform === "x"
+                  ? "Monthly X Impressions"
+                  : "Monthly Content Views"}
               </h2>
 
               <p>
-                Actual video views grouped by
-                publishing month.
+                {activePlatform === "x"
+                  ? "Actual impressions from available X posts grouped by publishing month."
+                  : "Actual video views grouped by publishing month."}
               </p>
 
             </div>
@@ -1006,7 +1554,7 @@ function GrowthTrends() {
 
           <div className="growth-chart-wrapper">
 
-            {monthlyViewData.length > 0 ? (
+            {activeMonthlyData.length > 0 ? (
 
               <ResponsiveContainer
                 width="100%"
@@ -1014,7 +1562,7 @@ function GrowthTrends() {
               >
 
                 <LineChart
-                  data={monthlyViewData}
+                  data={activeMonthlyData}
                   margin={{
                     top: 20,
                     right: 20,
@@ -1073,15 +1621,25 @@ function GrowthTrends() {
                     formatter={(value) => [
                       `${Number(
                         value
-                      ).toLocaleString()} views`,
-                      "Views",
+                      ).toLocaleString()} ${
+                        activePlatform === "x"
+                          ? "impressions"
+                          : "views"
+                      }`,
+                      activePlatform === "x"
+                        ? "Impressions"
+                        : "Views",
                     ]}
                   />
 
                   <Line
                     type="monotone"
                     dataKey="views"
-                    name="Views"
+                    name={
+                      activePlatform === "x"
+                        ? "Impressions"
+                        : "Views"
+                    }
                     stroke="#173f6f"
                     strokeWidth={4}
                     dot={{
@@ -1116,12 +1674,15 @@ function GrowthTrends() {
               >
 
                 <h3>
-                  No video data available
+                  {activePlatform === "x"
+                    ? "No X post data available"
+                    : "No video data available"}
                 </h3>
 
                 <p>
-                  Analyze a YouTube channel
-                  first to load real video data.
+                  {activePlatform === "x"
+                    ? "Analyze an X account first to load real post data."
+                    : "Analyze a YouTube channel first to load real video data."}
                 </p>
 
                 <button
@@ -1138,7 +1699,9 @@ function GrowthTrends() {
                     cursor: "pointer",
                   }}
                 >
-                  Analyze Channel
+                  {activePlatform === "x"
+                    ? "Analyze X Account"
+                    : "Analyze Channel"}
                 </button>
 
               </div>
@@ -1155,10 +1718,6 @@ function GrowthTrends() {
 
         <section className="growth-lower-grid">
 
-          {/* =================================================
-              PERFORMANCE
-          ================================================= */}
-
           <div className="growth-card">
 
             <div className="growth-section-label">
@@ -1172,7 +1731,7 @@ function GrowthTrends() {
             <p className="growth-description">
               Available performance metrics for{" "}
               <strong>
-                {channelName}
+                {activeCreatorName}
               </strong>.
             </p>
 
@@ -1181,13 +1740,19 @@ function GrowthTrends() {
               <div>
 
                 <span>
-                  Content View Growth
+                  {activePlatform === "x"
+                    ? "Impression Growth"
+                    : "Content View Growth"}
                 </span>
 
                 <strong>
-                  {formatPercentage(
-                    contentViewGrowth
-                  )}
+                  {activePlatform === "x" &&
+                  xMetrics.olderAverageImpressions ===
+                    0
+                    ? "Unavailable"
+                    : formatPercentage(
+                        contentViewGrowth
+                      )}
                 </strong>
 
               </div>
@@ -1209,13 +1774,19 @@ function GrowthTrends() {
               <div>
 
                 <span>
-                  Average Views
+                  {activePlatform === "x"
+                    ? "Average Impressions"
+                    : "Average Views"}
                 </span>
 
                 <strong>
-                  {formatNumber(
-                    averageViews
-                  )}
+                  {activePlatform === "x" &&
+                  xMetrics.totalImpressions ===
+                    0
+                    ? "Unavailable"
+                    : formatNumber(
+                        averageViews
+                      )}
                 </strong>
 
               </div>
@@ -1223,12 +1794,16 @@ function GrowthTrends() {
               <div>
 
                 <span>
-                  Subscribers
+                  {activePlatform === "x"
+                    ? "Followers"
+                    : "Subscribers"}
                 </span>
 
                 <strong>
                   {formatNumber(
-                    subscribers
+                    activePlatform === "x"
+                      ? xFollowers
+                      : subscribers
                   )}
                 </strong>
 
@@ -1237,10 +1812,6 @@ function GrowthTrends() {
             </div>
 
           </div>
-
-          {/* =================================================
-              TREND INSIGHTS
-          ================================================= */}
 
           <div className="growth-card">
 
@@ -1254,13 +1825,14 @@ function GrowthTrends() {
 
             <p className="growth-description">
               Insights generated only from
-              available YouTube channel and
-              video data.
+              available{" "}
+              {activePlatform === "x"
+                ? "X post"
+                : "YouTube channel and video"}{" "}
+              data.
             </p>
 
             <div className="trend-list">
-
-              {/* CONTENT */}
 
               <div className="trend-item">
 
@@ -1275,16 +1847,14 @@ function GrowthTrends() {
                   </strong>
 
                   <p>
-                    Recent videos are compared
-                    with the previous videos using
-                    their actual view counts.
+                    {activePlatform === "x"
+                      ? "Recent X posts are compared with previous posts using their actual impression counts."
+                      : "Recent videos are compared with the previous videos using their actual view counts."}
                   </p>
 
                 </div>
 
               </div>
-
-              {/* ENGAGEMENT */}
 
               <div className="trend-item">
 
@@ -1299,15 +1869,14 @@ function GrowthTrends() {
                   </strong>
 
                   <p>
-                    Engagement rate uses actual
-                    video views, likes and comments.
+                    {activePlatform === "x"
+                      ? "Engagement rate uses available impressions, likes, replies and reposts."
+                      : "Engagement rate uses actual video views, likes and comments."}
                   </p>
 
                 </div>
 
               </div>
-
-              {/* MONTHLY VIEWS */}
 
               <div className="trend-item">
 
@@ -1322,16 +1891,14 @@ function GrowthTrends() {
                   </strong>
 
                   <p>
-                    Monthly content views are
-                    calculated from the publishing
-                    dates and actual video views.
+                    {activePlatform === "x"
+                      ? "Monthly X impressions are calculated from post dates and available impression counts."
+                      : "Monthly content views are calculated from the publishing dates and actual video views."}
                   </p>
 
                 </div>
 
               </div>
-
-              {/* CREATOR ACTIVITY */}
 
               <div className="trend-item">
 
@@ -1346,9 +1913,9 @@ function GrowthTrends() {
                   </strong>
 
                   <p>
-                    Creator activity is based on the
-                    number of videos available for
-                    analysis.
+                    {activePlatform === "x"
+                      ? "X activity is based on the number of posts available for analysis."
+                      : "Creator activity is based on the number of videos available for analysis."}
                   </p>
 
                 </div>

@@ -25,76 +25,241 @@ function Audience() {
   // STATES
   // =====================================================
 
+  const [activePlatform, setActivePlatform] = useState(
+    localStorage.getItem("activeSocialPlatform") || "youtube"
+  );
+
   const [channel, setChannel] = useState(null);
   const [youtubeData, setYoutubeData] = useState(null);
 
+  const [xAccount, setXAccount] = useState(null);
+  const [xData, setXData] = useState(null);
+
   // =====================================================
-  // LOAD SELECTED YOUTUBE CHANNEL
+  // LOAD SELECTED CREATOR / ACCOUNT
   // =====================================================
 
   useEffect(() => {
-    try {
-      const savedChannel = localStorage.getItem(
-        "selectedYoutubeChannel"
-      );
+    const loadSelectedData = () => {
+      try {
+        const platform =
+          localStorage.getItem("activeSocialPlatform") ||
+          "youtube";
 
-      const savedYoutubeData = localStorage.getItem(
-        "selectedYoutubeData"
-      );
+        setActivePlatform(platform);
 
-      if (savedChannel) {
-        const parsedChannel = JSON.parse(savedChannel);
-        setChannel(parsedChannel);
-      }
+        // =================================================
+        // YOUTUBE
+        // =================================================
 
-      if (savedYoutubeData) {
-        const parsedData = JSON.parse(savedYoutubeData);
+        if (platform === "youtube") {
+          const savedChannel = localStorage.getItem(
+            "selectedYoutubeChannel"
+          );
 
-        setYoutubeData(parsedData);
+          const savedYoutubeData = localStorage.getItem(
+            "selectedYoutubeData"
+          );
 
-        if (!savedChannel && parsedData?.channel) {
-          setChannel(parsedData.channel);
+          if (savedChannel) {
+            const parsedChannel = JSON.parse(savedChannel);
+            setChannel(parsedChannel);
+          } else {
+            setChannel(null);
+          }
+
+          if (savedYoutubeData) {
+            const parsedData = JSON.parse(savedYoutubeData);
+
+            setYoutubeData(parsedData);
+
+            if (!savedChannel && parsedData?.channel) {
+              setChannel(parsedData.channel);
+            }
+          } else {
+            setYoutubeData(null);
+          }
+
+          setXAccount(null);
+          setXData(null);
         }
+
+        // =================================================
+        // X
+        // =================================================
+
+        if (platform === "x") {
+          const savedXAccount =
+            localStorage.getItem("selectedXAccount");
+
+          const savedXData =
+            localStorage.getItem("selectedXData");
+
+          if (savedXAccount) {
+            const parsedXAccount =
+              JSON.parse(savedXAccount);
+
+            setXAccount(parsedXAccount);
+          } else {
+            setXAccount(null);
+          }
+
+          if (savedXData) {
+            const parsedXData = JSON.parse(savedXData);
+
+            setXData(parsedXData);
+
+            if (!savedXAccount && parsedXData?.account) {
+              setXAccount(parsedXData.account);
+            }
+          } else {
+            setXData(null);
+          }
+
+          setChannel(null);
+          setYoutubeData(null);
+        }
+      } catch (error) {
+        console.error(
+          "Error loading selected audience data:",
+          error
+        );
       }
-    } catch (error) {
-      console.error(
-        "Error loading YouTube audience data:",
-        error
+    };
+
+    loadSelectedData();
+
+    // =====================================================
+    // LISTEN FOR CONTENT PAGE CHANGES
+    // =====================================================
+
+    const handleYoutubeChange = () => {
+      loadSelectedData();
+    };
+
+    const handleXChange = () => {
+      loadSelectedData();
+    };
+
+    const handlePlatformChange = () => {
+      loadSelectedData();
+    };
+
+    window.addEventListener(
+      "selectedYoutubeChannelChanged",
+      handleYoutubeChange
+    );
+
+    window.addEventListener(
+      "selectedXAccountChanged",
+      handleXChange
+    );
+
+    window.addEventListener(
+      "activeSocialPlatformChanged",
+      handlePlatformChange
+    );
+
+    window.addEventListener(
+      "storage",
+      handlePlatformChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "selectedYoutubeChannelChanged",
+        handleYoutubeChange
       );
-    }
+
+      window.removeEventListener(
+        "selectedXAccountChanged",
+        handleXChange
+      );
+
+      window.removeEventListener(
+        "activeSocialPlatformChanged",
+        handlePlatformChange
+      );
+
+      window.removeEventListener(
+        "storage",
+        handlePlatformChange
+      );
+    };
   }, []);
 
   // =====================================================
-  // CHANNEL NAME
+  // IS X?
   // =====================================================
 
-  const channelName =
-    channel?.channel_name ||
-    channel?.name ||
-    channel?.title ||
-    channel?.channelName ||
-    youtubeData?.channel?.channel_name ||
-    "Selected Creator";
+  const isX = activePlatform === "x";
 
   // =====================================================
-  // CHANNEL IMAGE
+  // CHANNEL / ACCOUNT NAME
   // =====================================================
 
-  const channelImage =
-    channel?.thumbnail ||
-    channel?.thumbnailUrl ||
-    channel?.image ||
-    channel?.imageUrl ||
-    channel?.profileImage ||
-    channel?.profilePicture ||
-    youtubeData?.channel?.thumbnail ||
-    "";
+  const channelName = isX
+    ? (
+        xAccount?.username ||
+        xAccount?.name ||
+        xAccount?.display_name ||
+        xAccount?.screen_name ||
+        xData?.account?.username ||
+        xData?.account?.name ||
+        xData?.username ||
+        "Selected X Account"
+      )
+    : (
+        channel?.channel_name ||
+        channel?.name ||
+        channel?.title ||
+        channel?.channelName ||
+        youtubeData?.channel?.channel_name ||
+        "Selected Creator"
+      );
 
   // =====================================================
-  // SUBSCRIBERS
+  // CHANNEL / PROFILE IMAGE
   // =====================================================
 
-  const subscribers = Number(
+  const channelImage = isX
+    ? (
+        xAccount?.profile_image_url ||
+        xAccount?.profile_image ||
+        xAccount?.profileImage ||
+        xAccount?.profile_picture ||
+        xAccount?.profilePicture ||
+        xData?.account?.profile_image_url ||
+        xData?.account?.profile_image ||
+        xData?.account?.profileImage ||
+        ""
+      )
+    : (
+        channel?.thumbnail ||
+        channel?.thumbnailUrl ||
+        channel?.image ||
+        channel?.imageUrl ||
+        channel?.profileImage ||
+        channel?.profilePicture ||
+        youtubeData?.channel?.thumbnail ||
+        ""
+      );
+
+  // =====================================================
+  // X PROFILE IMAGE QUALITY
+  // =====================================================
+
+  const finalChannelImage = isX
+    ? channelImage
+        ?.replace("_normal.", ".")
+        .replace("_bigger.", ".")
+    : channelImage;
+
+  // =====================================================
+  // YOUTUBE SUBSCRIBERS
+  // =====================================================
+
+  const youtubeSubscribers = Number(
     channel?.subscribers ||
       channel?.subscriber_count ||
       channel?.subscriberCount ||
@@ -104,7 +269,46 @@ function Audience() {
   );
 
   // =====================================================
-  // TOTAL VIEWS
+  // X FOLLOWERS
+  // =====================================================
+
+  const xFollowers = Number(
+    xAccount?.followers ||
+      xAccount?.followers_count ||
+      xAccount?.public_metrics?.followers_count ||
+      xAccount?.statistics?.followers_count ||
+      xData?.account?.followers ||
+      xData?.account?.followers_count ||
+      xData?.account?.public_metrics?.followers_count ||
+      0
+  );
+
+  // =====================================================
+  // X FOLLOWING
+  // =====================================================
+
+  const xFollowing = Number(
+    xAccount?.following ||
+      xAccount?.following_count ||
+      xAccount?.friends_count ||
+      xAccount?.public_metrics?.following_count ||
+      xAccount?.statistics?.following_count ||
+      xData?.account?.following ||
+      xData?.account?.following_count ||
+      xData?.account?.public_metrics?.following_count ||
+      0
+  );
+
+  // =====================================================
+  // SUBSCRIBERS / FOLLOWERS
+  // =====================================================
+
+  const subscribers = isX
+    ? xFollowers
+    : youtubeSubscribers;
+
+  // =====================================================
+  // YOUTUBE TOTAL VIEWS
   // =====================================================
 
   const totalViews = Number(
@@ -119,7 +323,93 @@ function Audience() {
   );
 
   // =====================================================
-  // TOTAL VIDEOS
+  // X TOTAL POSTS
+  // =====================================================
+
+  /*
+    X can return the total post count using different field
+    names depending on the API response.
+
+    We check all possible locations.
+
+    IMPORTANT:
+    We also check "posts" because some responses may store
+    the total count there.
+  */
+
+  const rawXPosts =
+    xAccount?.tweet_count ??
+    xAccount?.tweets_count ??
+    xAccount?.posts_count ??
+    xAccount?.posts ??
+    xAccount?.statuses_count ??
+    xAccount?.public_metrics?.tweet_count ??
+    xAccount?.public_metrics?.tweets_count ??
+    xAccount?.public_metrics?.posts_count ??
+    xData?.account?.tweet_count ??
+    xData?.account?.tweets_count ??
+    xData?.account?.posts_count ??
+    xData?.account?.posts ??
+    xData?.tweet_count ??
+    xData?.tweets_count ??
+    xData?.posts_count ??
+    xData?.posts ??
+    0;
+
+  // =====================================================
+  // CONVERT X POSTS TO NUMBER
+  // =====================================================
+
+  const convertXPostCount = (value) => {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return 0;
+    }
+
+    if (typeof value === "number") {
+      return Math.round(value);
+    }
+
+    const stringValue = String(value)
+      .trim()
+      .replace(/,/g, "");
+
+    // Example: "2.9K"
+    if (/^[0-9.]+K$/i.test(stringValue)) {
+      return Math.round(
+        parseFloat(stringValue) * 1000
+      );
+    }
+
+    // Example: "2.9M"
+    if (/^[0-9.]+M$/i.test(stringValue)) {
+      return Math.round(
+        parseFloat(stringValue) * 1000000
+      );
+    }
+
+    // Example: "2.9B"
+    if (/^[0-9.]+B$/i.test(stringValue)) {
+      return Math.round(
+        parseFloat(stringValue) * 1000000000
+      );
+    }
+
+    const numericValue = Number(stringValue);
+
+    return Number.isFinite(numericValue)
+      ? Math.round(numericValue)
+      : 0;
+  };
+
+  const totalXPosts =
+    convertXPostCount(rawXPosts);
+
+  // =====================================================
+  // YOUTUBE TOTAL VIDEOS
   // =====================================================
 
   const videoCount = Number(
@@ -132,14 +422,32 @@ function Audience() {
   );
 
   // =====================================================
-  // RECENT VIDEOS
-  // Used only for audience calculations and graph
+  // X RECENT POSTS
+  // =====================================================
+
+  const recentXPosts =
+    xData?.recent_posts ||
+    xData?.recentPosts ||
+    xData?.posts ||
+    xAccount?.recent_posts ||
+    [];
+
+  // =====================================================
+  // YOUTUBE RECENT VIDEOS
   // =====================================================
 
   const recentVideos =
     youtubeData?.recent_videos ||
     youtubeData?.recentVideos ||
     [];
+
+  // =====================================================
+  // ACTIVE RECENT CONTENT
+  // =====================================================
+
+  const recentContent = isX
+    ? recentXPosts
+    : recentVideos;
 
   // =====================================================
   // FORMAT NUMBER
@@ -188,44 +496,106 @@ function Audience() {
   };
 
   // =====================================================
+  // GET X POST METRICS
+  // =====================================================
+
+  const getXMetrics = (post) => {
+    const metrics =
+      post?.public_metrics ||
+      post?.metrics ||
+      {};
+
+    return {
+      views: Number(
+        metrics.impression_count ||
+          metrics.impressions ||
+          post?.views ||
+          post?.impressions ||
+          0
+      ),
+
+      likes: Number(
+        metrics.like_count ||
+          metrics.likes ||
+          post?.likes ||
+          0
+      ),
+
+      comments: Number(
+        metrics.reply_count ||
+          metrics.replies ||
+          metrics.comments ||
+          post?.comments ||
+          0
+      ),
+
+      reposts: Number(
+        metrics.retweet_count ||
+          metrics.reposts ||
+          post?.retweets ||
+          post?.reposts ||
+          0
+      ),
+    };
+  };
+
+  // =====================================================
   // TOTAL RECENT VIEWS
   // =====================================================
 
-  const totalRecentViews = recentVideos.reduce(
-    (sum, video) =>
-      sum + Number(video.views || 0),
-    0
-  );
+  const totalRecentViews = isX
+    ? recentXPosts.reduce(
+        (sum, post) =>
+          sum + getXMetrics(post).views,
+        0
+      )
+    : recentVideos.reduce(
+        (sum, video) =>
+          sum + Number(video.views || 0),
+        0
+      );
 
   // =====================================================
   // TOTAL RECENT LIKES
   // =====================================================
 
-  const totalRecentLikes = recentVideos.reduce(
-    (sum, video) =>
-      sum + Number(video.likes || 0),
-    0
-  );
+  const totalRecentLikes = isX
+    ? recentXPosts.reduce(
+        (sum, post) =>
+          sum + getXMetrics(post).likes,
+        0
+      )
+    : recentVideos.reduce(
+        (sum, video) =>
+          sum + Number(video.likes || 0),
+        0
+      );
 
   // =====================================================
   // TOTAL RECENT COMMENTS
   // =====================================================
 
-  const totalRecentComments = recentVideos.reduce(
-    (sum, video) =>
-      sum + Number(video.comments || 0),
-    0
-  );
+  const totalRecentComments = isX
+    ? recentXPosts.reduce(
+        (sum, post) =>
+          sum + getXMetrics(post).comments,
+        0
+      )
+    : recentVideos.reduce(
+        (sum, video) =>
+          sum + Number(video.comments || 0),
+        0
+      );
 
   // =====================================================
   // AVERAGE VIEWS
   // =====================================================
 
   const averageViews =
-    recentVideos.length > 0
+    recentContent.length > 0
       ? Math.round(
           totalRecentViews /
-            recentVideos.length
+            recentContent.length
         )
       : 0;
 
@@ -234,10 +604,10 @@ function Audience() {
   // =====================================================
 
   const averageLikes =
-    recentVideos.length > 0
+    recentContent.length > 0
       ? Math.round(
           totalRecentLikes /
-            recentVideos.length
+            recentContent.length
         )
       : 0;
 
@@ -246,10 +616,10 @@ function Audience() {
   // =====================================================
 
   const averageComments =
-    recentVideos.length > 0
+    recentContent.length > 0
       ? Math.round(
           totalRecentComments /
-            recentVideos.length
+            recentContent.length
         )
       : 0;
 
@@ -257,21 +627,63 @@ function Audience() {
   // ENGAGEMENT RATE
   // =====================================================
 
-  const engagementRate =
-    totalRecentViews > 0
-      ? (
-          ((totalRecentLikes +
-            totalRecentComments) /
-            totalRecentViews) *
-          100
-        ).toFixed(2)
-      : "0.00";
+  const engagementRate = isX
+    ? (
+        xFollowers > 0
+          ? (
+              ((totalRecentLikes +
+                totalRecentComments) /
+                xFollowers) *
+              100
+            ).toFixed(2)
+          : "0.00"
+      )
+    : (
+        totalRecentViews > 0
+          ? (
+              ((totalRecentLikes +
+                totalRecentComments) /
+                totalRecentViews) *
+              100
+            ).toFixed(2)
+          : "0.00"
+      );
 
   // =====================================================
   // AUDIENCE BEHAVIOR DATA
   // =====================================================
 
   const behaviorData = useMemo(() => {
+    if (isX) {
+      return recentXPosts
+        .slice(0, 8)
+        .map((post, index) => {
+          const fullTitle =
+            post.text ||
+            post.title ||
+            `Post ${index + 1}`;
+
+          let shortTitle = fullTitle;
+
+          if (shortTitle.length > 18) {
+            shortTitle =
+              shortTitle.substring(0, 18) +
+              "...";
+          }
+
+          const metrics =
+            getXMetrics(post);
+
+          return {
+            name: shortTitle,
+            fullTitle: fullTitle,
+            views: metrics.views,
+            likes: metrics.likes,
+            comments: metrics.comments,
+          };
+        });
+    }
+
     return recentVideos
       .slice(0, 8)
       .map((video, index) => {
@@ -295,7 +707,11 @@ function Audience() {
           comments: Number(video.comments || 0),
         };
       });
-  }, [recentVideos]);
+  }, [
+    isX,
+    recentXPosts,
+    recentVideos,
+  ]);
 
   // =====================================================
   // ENGAGEMENT DISTRIBUTION DATA
@@ -304,7 +720,7 @@ function Audience() {
   const engagementDistribution = useMemo(() => {
     return [
       {
-        name: "Views",
+        name: isX ? "Impressions" : "Views",
         value: totalRecentViews,
       },
       {
@@ -312,26 +728,27 @@ function Audience() {
         value: totalRecentLikes,
       },
       {
-        name: "Comments",
+        name: isX ? "Replies" : "Comments",
         value: totalRecentComments,
       },
     ].filter((item) => item.value > 0);
   }, [
+    isX,
     totalRecentViews,
     totalRecentLikes,
     totalRecentComments,
   ]);
 
   // =====================================================
-  // NO CHANNEL
+  // NO SELECTED CREATOR
   // =====================================================
 
-  const noChannel =
-    !channel && !youtubeData;
+  const noChannel = isX
+    ? !xAccount && !xData
+    : !channel && !youtubeData;
 
   // =====================================================
   // CUSTOM TOOLTIP FOR GRAPH
-  // Shows FULL video title
   // =====================================================
 
   const CustomGraphTooltip = ({
@@ -548,7 +965,7 @@ function Audience() {
               performance.
             </p>
 
-            {channel && (
+            {(channel || xAccount || xData) && (
               <div
                 style={{
                   marginTop: "14px",
@@ -566,14 +983,14 @@ function Audience() {
 
             <span className="audience-live-dot"></span>
 
-            YouTube data
+            {isX ? "X data" : "YouTube data"}
 
           </div>
 
         </header>
 
         {/* =================================================
-            NO CHANNEL
+            NO CHANNEL / ACCOUNT
         ================================================= */}
 
         {noChannel ? (
@@ -581,12 +998,15 @@ function Audience() {
           <section className="audience-loading">
 
             <h2>
-              No YouTube channel selected
+              {isX
+                ? "No X account selected"
+                : "No YouTube channel selected"}
             </h2>
 
             <p>
-              Please analyze a YouTube channel
-              from the Content page first.
+              {isX
+                ? "Please analyze an X account from the Content page first."
+                : "Please analyze a YouTube channel from the Content page first."}
             </p>
 
             <button
@@ -615,7 +1035,7 @@ function Audience() {
 
             {/* =================================================
                 SECTION 1
-                CHANNEL PROFILE
+                SELECTED CREATOR / ACCOUNT
             ================================================= */}
 
             <section className="audience-card">
@@ -633,10 +1053,10 @@ function Audience() {
                 }}
               >
 
-                {channelImage ? (
+                {finalChannelImage ? (
 
                   <img
-                    src={channelImage}
+                    src={finalChannelImage}
                     alt={channelName}
                     referrerPolicy="no-referrer"
                     style={{
@@ -673,7 +1093,9 @@ function Audience() {
                 <div>
 
                   <h2 style={{ margin: 0 }}>
-                    {channelName}
+                    {isX
+                      ? `@${String(channelName).replace(/^@/, "")}`
+                      : channelName}
                   </h2>
 
                   <p
@@ -681,7 +1103,9 @@ function Audience() {
                       margin: "5px 0 0",
                     }}
                   >
-                    YouTube audience overview
+                    {isX
+                      ? "X audience overview"
+                      : "YouTube audience overview"}
                   </p>
 
                 </div>
@@ -697,14 +1121,16 @@ function Audience() {
 
             <section className="audience-kpi-grid">
 
-              {/* TOTAL FOLLOWERS */}
+              {/* FOLLOWERS / SUBSCRIBERS */}
 
               <div className="audience-kpi-card">
 
                 <div className="audience-kpi-top">
 
                   <span>
-                    TOTAL FOLLOWERS
+                    {isX
+                      ? "TOTAL FOLLOWERS"
+                      : "TOTAL FOLLOWERS"}
                   </span>
 
                   <div className="audience-kpi-icon">
@@ -720,19 +1146,23 @@ function Audience() {
                 </h2>
 
                 <p>
-                  YouTube subscribers
+                  {isX
+                    ? "X followers"
+                    : "YouTube subscribers"}
                 </p>
 
               </div>
 
-              {/* TOTAL VIEWS */}
+              {/* TOTAL VIEWS / FOLLOWING */}
 
               <div className="audience-kpi-card">
 
                 <div className="audience-kpi-top">
 
                   <span>
-                    TOTAL VIEWS
+                    {isX
+                      ? "FOLLOWING"
+                      : "TOTAL VIEWS"}
                   </span>
 
                   <div className="audience-kpi-icon">
@@ -743,24 +1173,30 @@ function Audience() {
 
                 <h2>
                   {formatNumber(
-                    totalViews
+                    isX
+                      ? xFollowing
+                      : totalViews
                   )}
                 </h2>
 
                 <p>
-                  Channel lifetime views
+                  {isX
+                    ? "X accounts followed"
+                    : "Channel lifetime views"}
                 </p>
 
               </div>
 
-              {/* TOTAL VIDEOS */}
+              {/* TOTAL POSTS / VIDEOS */}
 
               <div className="audience-kpi-card">
 
                 <div className="audience-kpi-top">
 
                   <span>
-                    TOTAL VIDEOS
+                    {isX
+                      ? "TOTAL POSTS"
+                      : "TOTAL VIDEOS"}
                   </span>
 
                   <div className="audience-kpi-icon">
@@ -770,25 +1206,29 @@ function Audience() {
                 </div>
 
                 <h2>
-                  {formatNumber(
-                    videoCount
-                  )}
+                  {isX
+                    ? totalXPosts.toLocaleString("en-IN")
+                    : formatNumber(videoCount)}
                 </h2>
 
                 <p>
-                  Published videos
+                  {isX
+                    ? "Posts published"
+                    : "Published videos"}
                 </p>
 
               </div>
 
-              {/* AVG VIEWS */}
+              {/* AVG VIEWS / IMPRESSIONS */}
 
               <div className="audience-kpi-card">
 
                 <div className="audience-kpi-top">
 
                   <span>
-                    AVG. VIEWS
+                    {isX
+                      ? "AVG. IMPRESSIONS"
+                      : "AVG. VIEWS"}
                   </span>
 
                   <div className="audience-kpi-icon">
@@ -804,7 +1244,9 @@ function Audience() {
                 </h2>
 
                 <p>
-                  Per recent video
+                  {isX
+                    ? "Per recent post"
+                    : "Per recent video"}
                 </p>
 
               </div>
@@ -840,9 +1282,9 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Public engagement signals
-                    based on {channelName}'s
-                    recent videos.
+                    {isX
+                      ? `Public engagement signals based on ${channelName}'s recent X posts.`
+                      : `Public engagement signals based on ${channelName}'s recent videos.`}
                   </p>
 
                 </div>
@@ -857,7 +1299,10 @@ function Audience() {
                     fontWeight: "600",
                   }}
                 >
-                  {recentVideos.length} videos analyzed
+                  {recentContent.length}{" "}
+                  {isX
+                    ? "posts analyzed"
+                    : "videos analyzed"}
                 </div>
 
               </div>
@@ -892,19 +1337,23 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Per recent video
+                    {isX
+                      ? "Per recent post"
+                      : "Per recent video"}
                   </p>
 
                 </div>
 
-                {/* AVG COMMENTS */}
+                {/* AVG COMMENTS / REPLIES */}
 
                 <div className="audience-kpi-card">
 
                   <div className="audience-kpi-top">
 
                     <span>
-                      AVG. COMMENTS
+                      {isX
+                        ? "AVG. REPLIES"
+                        : "AVG. COMMENTS"}
                     </span>
 
                     <div className="audience-kpi-icon">
@@ -920,7 +1369,9 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Per recent video
+                    {isX
+                      ? "Per recent post"
+                      : "Per recent video"}
                   </p>
 
                 </div>
@@ -946,12 +1397,14 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Likes + comments / views
+                    {isX
+                      ? "Likes + replies / followers"
+                      : "Likes + comments / views"}
                   </p>
 
                 </div>
 
-                {/* AUDIENCE INTERACTIONS */}
+                {/* TOTAL INTERACTIONS */}
 
                 <div className="audience-kpi-card">
 
@@ -975,7 +1428,9 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Likes + comments
+                    {isX
+                      ? "Likes + replies"
+                      : "Likes + comments"}
                   </p>
 
                 </div>
@@ -1013,8 +1468,9 @@ function Audience() {
                   </h2>
 
                   <p>
-                    Compare views, likes and
-                    comments across recent videos.
+                    {isX
+                      ? "Compare impressions, likes and replies across recent X posts."
+                      : "Compare views, likes and comments across recent videos."}
                   </p>
 
                 </div>
@@ -1030,6 +1486,7 @@ function Audience() {
                 >
 
                   <span>
+
                     <span
                       style={{
                         display:
@@ -1044,10 +1501,14 @@ function Audience() {
                       }}
                     ></span>
 
-                    Views
+                    {isX
+                      ? "Impressions"
+                      : "Views"}
+
                   </span>
 
                   <span>
+
                     <span
                       style={{
                         display:
@@ -1063,9 +1524,11 @@ function Audience() {
                     ></span>
 
                     Likes
+
                   </span>
 
                   <span>
+
                     <span
                       style={{
                         display:
@@ -1080,7 +1543,10 @@ function Audience() {
                       }}
                     ></span>
 
-                    Comments
+                    {isX
+                      ? "Replies"
+                      : "Comments"}
+
                   </span>
 
                 </div>
@@ -1145,7 +1611,11 @@ function Audience() {
                       <Line
                         type="monotone"
                         dataKey="views"
-                        name="Views"
+                        name={
+                          isX
+                            ? "Impressions"
+                            : "Views"
+                        }
                         stroke="#173F6F"
                         strokeWidth={3}
                         dot={{
@@ -1170,7 +1640,11 @@ function Audience() {
                       <Line
                         type="monotone"
                         dataKey="comments"
-                        name="Comments"
+                        name={
+                          isX
+                            ? "Replies"
+                            : "Comments"
+                        }
                         stroke="#8EACC9"
                         strokeWidth={2}
                         dot={{
@@ -1197,7 +1671,10 @@ function Audience() {
                       color: "#66788a",
                     }}
                   >
-                    No recent video
+                    No recent{" "}
+                    {isX
+                      ? "post"
+                      : "video"}{" "}
                     performance data
                     available.
                   </div>
@@ -1224,9 +1701,9 @@ function Audience() {
               </h2>
 
               <p>
-                Overview of how views, likes and
-                comments are distributed across
-                {channelName}'s recent content.
+                {isX
+                  ? `Overview of how impressions, likes and replies are distributed across ${channelName}'s recent X content.`
+                  : `Overview of how views, likes and comments are distributed across ${channelName}'s recent content.`}
               </p>
 
               <div
@@ -1345,6 +1822,8 @@ function Audience() {
                   }}
                 >
 
+                  {/* RECENT VIEWS / IMPRESSIONS */}
+
                   <div
                     style={{
                       padding: "18px",
@@ -1366,7 +1845,9 @@ function Audience() {
                           "uppercase",
                       }}
                     >
-                      Recent Views
+                      {isX
+                        ? "Recent Impressions"
+                        : "Recent Views"}
                     </div>
 
                     <div
@@ -1384,6 +1865,8 @@ function Audience() {
                     </div>
 
                   </div>
+
+                  {/* RECENT LIKES */}
 
                   <div
                     style={{
@@ -1425,6 +1908,8 @@ function Audience() {
 
                   </div>
 
+                  {/* RECENT COMMENTS / REPLIES */}
+
                   <div
                     style={{
                       padding: "18px",
@@ -1446,7 +1931,9 @@ function Audience() {
                           "uppercase",
                       }}
                     >
-                      Recent Comments
+                      {isX
+                        ? "Recent Replies"
+                        : "Recent Comments"}
                     </div>
 
                     <div
@@ -1483,12 +1970,15 @@ function Audience() {
               </div>
 
               <h2>
-                {channelName}
+                {isX
+                  ? `@${String(channelName).replace(/^@/, "")}`
+                  : channelName}
               </h2>
 
               <p>
-                Key publicly available audience
-                signals for this YouTube creator.
+                {isX
+                  ? "Key publicly available audience signals for this X account."
+                  : "Key publicly available audience signals for this YouTube creator."}
               </p>
 
               <div
@@ -1501,7 +1991,7 @@ function Audience() {
                 }}
               >
 
-                {/* SUBSCRIBERS */}
+                {/* FOLLOWERS / SUBSCRIBERS */}
 
                 <div
                   style={{
@@ -1526,7 +2016,9 @@ function Audience() {
                         "uppercase",
                     }}
                   >
-                    Subscribers
+                    {isX
+                      ? "Followers"
+                      : "Subscribers"}
                   </span>
 
                   <h3
@@ -1546,7 +2038,7 @@ function Audience() {
 
                 </div>
 
-                {/* VIEWS */}
+                {/* VIEWS / FOLLOWING */}
 
                 <div
                   style={{
@@ -1571,7 +2063,9 @@ function Audience() {
                         "uppercase",
                     }}
                   >
-                    Total Views
+                    {isX
+                      ? "Following"
+                      : "Total Views"}
                   </span>
 
                   <h3
@@ -1585,13 +2079,15 @@ function Audience() {
                     }}
                   >
                     {formatNumber(
-                      totalViews
+                      isX
+                        ? xFollowing
+                        : totalViews
                     )}
                   </h3>
 
                 </div>
 
-                {/* VIDEOS */}
+                {/* POSTS / VIDEOS */}
 
                 <div
                   style={{
@@ -1616,7 +2112,9 @@ function Audience() {
                         "uppercase",
                     }}
                   >
-                    Published Videos
+                    {isX
+                      ? "Posts"
+                      : "Published Videos"}
                   </span>
 
                   <h3
@@ -1629,9 +2127,9 @@ function Audience() {
                         "#173F6F",
                     }}
                   >
-                    {formatNumber(
-                      videoCount
-                    )}
+                    {isX
+                      ? totalXPosts.toLocaleString("en-IN")
+                      : formatNumber(videoCount)}
                   </h3>
 
                 </div>
