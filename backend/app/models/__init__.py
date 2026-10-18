@@ -6,4 +6,6 @@ from .analytics import Analytics
 
 from .audience import Audience
 
-from .earnings import Earnings
+from .earnings import Earnings 
+
+from .sponsorship import Sponsorship

@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,6 +7,7 @@ from app.analytics.routes import router as analytics_router
 from app.audience.routes import router as audience_router
 from app.social.routes import router as social_router
 from app.earnings.routes import router as earnings_router
+from app.sponsorship.routes import router as sponsorship_router
 
 
 app = FastAPI(
@@ -47,6 +49,9 @@ app.include_router(social_router)
 
 # Earnings
 app.include_router(earnings_router)
+
+# Sponsorship Tracking
+app.include_router(sponsorship_router)
 
 
 # =====================================================
